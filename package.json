@@ -1,0 +1,32 @@
+{
+  "name": "sequelize-bakery",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "build": "tsc",
+    "run": "tsc && dist/index.js"
+  },
+  "_moduleAliases": {
+    "@app": "dist"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "faker": "^5.5.3",
+    "module-alias": "^2.2.2",
+    "sequelize": "^6.6.5",
+    "sequelize-typescript": "^2.1.0",
+    "sqlite3": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/faker": "^5.5.8",
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.10.2",
+    "@types/validator": "^13.6.3",
+    "jest": "^27.2.4",
+    "ts-jest": "^27.0.5",
+    "typescript": "^4.4.3"
+  }
+}
