@@ -63,13 +63,14 @@ export async function build<T extends Model<any, any>>(model: ModelCtor<T>, data
 		}
 	});
 
-    const instance: T = await model.create({ ...fakeData });
+    const instance: T = await model.create({ ...fakeData }); // this doesn't
+	const i = await model.findOne(); // this has the ID
 
 	Object.entries(nestedModels).forEach(async ([attr, model]) => {
-		instance.set(attr, model);
+		const setter = `set${attr}`;
+		let typescriptHack = instance as typeof instance & { [key: string]: (i: typeof instance) => void };
+		await typescriptHack[setter as keyof T](model);
 	});
 
-	await instance.save();
-
-	return instance;
+	return instance.save();
 }

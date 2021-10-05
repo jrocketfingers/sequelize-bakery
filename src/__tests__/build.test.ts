@@ -1,7 +1,10 @@
 import { Sequelize, DataTypes, Optional, Model, HasManyGetAssociationsMixin, BelongsToGetAssociationMixin, ModelCtor } from "sequelize";
 import { build } from '@app/build';
 
-const sequelize = new Sequelize('sqlite::memory:');
+const sequelize = new Sequelize({
+	dialect: 'sqlite',
+	storage: 'db.sqlite3',
+});
 
 interface UserAttributes {
 	id: number;
