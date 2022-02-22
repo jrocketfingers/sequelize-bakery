@@ -1,37 +1,35 @@
-import { Sequelize, DataTypes, Optional, Model, HasManyGetAssociationsMixin, BelongsToGetAssociationMixin, ModelCtor } from "sequelize";
+import {
+	Sequelize, DataTypes, Model, InferAttributes,
+	InferCreationAttributes, HasManyGetAssociationsMixin,
+	BelongsToGetAssociationMixin, BelongsToSetAssociationMixin, ModelStatic,
+} from "sequelize";
 import { build } from '@app/build';
 
 const sequelize = new Sequelize({
 	dialect: 'sqlite',
 	storage: 'db.sqlite3',
+	logging: false,
 });
 
-interface UserAttributes {
-	id: number;
-	username: string;
-	email: string;
-}
+class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
+	declare public id?: number;
+	declare public username: string;
+	declare public email: string;
 
-interface UserCreationAttributes extends Optional<UserAttributes, "id"> {}
+	declare public createdAt: Date;
+	declare public updatedAt: Date;
 
-class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
-	public id!: number;
-	public username!: string;
-	public email!: string;
+	declare public getAccounts: HasManyGetAssociationsMixin<Account>;
 
-	public createdAt!: Date;
-	public updatedAt!: Date;
-
-	public getAccounts!: HasManyGetAssociationsMixin<Account>;
-
-	public accounts?: Account[];
+	declare public accounts?: Account[];
 }
 
 User.init(
 	{
 		id: {
-			type: DataTypes.INTEGER.UNSIGNED,
+			type: DataTypes.INTEGER,
 			primaryKey: true,
+			autoIncrement: true,
 		},
 		username: {
 			type: DataTypes.STRING,
@@ -39,6 +37,14 @@ User.init(
 		},
 		email: {
 			type: DataTypes.STRING,
+			allowNull: false,
+		},
+		createdAt: {
+			type: DataTypes.DATE,
+			allowNull: false,
+		},
+		updatedAt: {
+			type: DataTypes.DATE,
 			allowNull: false,
 		}
 	},
@@ -48,30 +54,29 @@ User.init(
 	}
 );
 
-interface AccountAttributes {
-	id: number;
-	name: string;
-}
+class Account extends Model<InferAttributes<Account>, InferCreationAttributes<Account>> {
+	declare public id: number;
+	declare public name: string;
+	declare public userId: number;
 
-interface AccountCreationAttributes extends Optional<AccountAttributes, "id"> {}
-
-class Account extends Model<AccountAttributes, AccountCreationAttributes> {
-	public id!: number;
-	public name!: string;
-
-	public getUser!: BelongsToGetAssociationMixin<User>;
-
-	public user?: User;
+	declare public user?: User;
+	declare public getUser: BelongsToGetAssociationMixin<User>;
+	declare public setUser: BelongsToSetAssociationMixin<User, Account['userId']>;
 }
 
 Account.init(
 	{
 		id: {
-			type: DataTypes.INTEGER.UNSIGNED,
+			type: DataTypes.INTEGER,
 			primaryKey: true,
+			autoIncrement: true,
 		},
 		name: {
 			type: DataTypes.STRING,
+			allowNull: false,
+		},
+		userId: {
+			type: DataTypes.INTEGER,
 			allowNull: false,
 		}
 	},
@@ -81,25 +86,129 @@ Account.init(
 	}
 );
 
-User.hasMany(Account);
-Account.belongsTo(User);
+class Wallet extends Model<InferAttributes<Wallet>, InferCreationAttributes<Wallet>> {
+	declare public id: number;
+	declare public name: string;
+	declare public accountId: number;
 
-test('should build a model with no associations', async () => {
+	declare public account?: Account;
+	declare public getAccount: BelongsToGetAssociationMixin<Account>;
+	declare public setAccount: BelongsToSetAssociationMixin<Wallet, Wallet['accountId']>;
+}
 
-});
+Wallet.init(
+	{
+		id: {
+			type: DataTypes.INTEGER,
+			primaryKey: true,
+			autoIncrement: true,
+		},
+		name: {
+			type: DataTypes.STRING,
+			allowNull: false,
+		},
+		accountId: {
+			type: DataTypes.INTEGER,
+			allowNull: false,
+		}
+	},
+	{
+		tableName: 'wallets',
+		sequelize,
+	}
+);
 
-test('should build a model with a hasMany association', async () => {
+User.hasMany(Account, { foreignKey: 'userId' });
+Account.belongsTo(User, { foreignKey: 'userId' });
+Account.hasMany(Wallet, { foreignKey: 'accountId' });
+Wallet.belongsTo(Account, { foreignKey: 'accountId' });
 
-});
-
-test('should build a model with a hasOne association', async () => {
-
-});
-
-test('should build a model with a belongsTo association', async () => {
+beforeAll(async () => {
 	await sequelize.sync({ force: true });
-
-	const instance = await build(Account as ModelCtor<Account>, { User: { name: 'Brock' } });
-	console.log(instance.toJSON());
-	console.log((await instance.getUser()).toJSON());
 });
+
+describe('just create', () => {
+	test('can create an instance with a belongsTo relation', async () => {
+		await build(Account, { User: { username: 'Brock' } });
+
+		const instance = await Account.findOne({
+			include: {
+				model: User,
+				where: {
+					username: 'Brock',
+				}
+			}
+		});
+
+		expect(instance).not.toBeNull();
+		expect(instance!.user).not.toBeNull();
+	});
+
+	// don't have a mechanism just yet
+	test.skip('can create an instance with a hasMany relation', async () => {
+
+	});
+});
+
+describe('create with overrides', () => {
+	test('can override a primitive value', async () => {
+		const instance = await build(Account, { name: 'overriden' });
+
+		expect(instance.name).toEqual('overriden');
+	});
+
+	test('can override a primitive in a nested, created, association', async () => {
+		const instance = await build(Account, { User: { username: 'overriden' } });
+
+		expect(instance!.user!.username).toEqual('overriden');
+	});
+
+	test('can override an association directly by providing an entire object', async () => {
+		const preDefinedUser = await User.create({
+			username: 'custom user',
+			email: 'test@gmail.com',
+			createdAt: new Date(),
+			updatedAt: new Date()
+		});
+
+		const instance = await build(Account, { User: preDefinedUser });
+
+		expect(instance.user).toEqual(preDefinedUser);
+	});
+});
+
+describe('create nested', () => {
+	test('can create a deep hierarchy', async () => {
+		const instance = await build(Wallet);
+
+		expect(instance.account).not.toBeNull();
+		expect(instance.account!.user).not.toBeNull();		
+	});
+
+	test('can override a skip-level in hierarchy', async () => {
+		const instance = await build(Wallet, { Account: { User: { username: 'overriden' } } });
+
+		expect(instance.account?.user?.username).toEqual('overriden');
+	});
+
+	test('can share pre-defined models in multiple builders', async () => {
+		const user = await build(User);
+		await build(Wallet, { Account: { User: user } });
+		await build(Wallet, { Account: { User: user } });
+		await build(Wallet); // one wallet does _not_ belong to the same user!
+
+		const wallets = await Wallet.findAll({
+			include: [{
+				model: Account,
+				required: true,
+				include: [{
+					model: User,
+					where: { id: user.id },
+					required: true,
+				}]
+			}]
+		})
+
+		expect(wallets).toHaveLength(2);
+	});
+})
