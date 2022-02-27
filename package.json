@@ -1,17 +1,28 @@
 {
   "name": "sequelize-bakery",
   "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
+  "description": "A sequelize test model builder inspired by Django's model-bakery",
+  "main": "dist/build.js",
   "scripts": {
     "test": "jest",
     "build": "tsc",
-    "run": "tsc && dist/index.js"
+    "lint": "tslint -p tsconfig.json",
+    "run": "tsc && dist/index.js",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint",
+    "version": "git add -A src",
+    "postversion": "git push && git push --tags"
   },
   "_moduleAliases": {
     "@app": "dist"
   },
-  "author": "",
+  "author": "jrocketfingers <developer94@gmail.com>",
+  "keywords": [
+    "sequelize",
+    "test",
+    "builder"
+  ],
   "license": "ISC",
   "dependencies": {
     "faker": "^5.5.3",
@@ -27,6 +38,7 @@
     "@types/validator": "^13.6.3",
     "jest": "^27.2.4",
     "ts-jest": "^27.0.5",
+    "tslint": "^6.1.3",
     "typescript": "^4.4.3"
   }
 }
