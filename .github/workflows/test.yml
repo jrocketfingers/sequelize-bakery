@@ -1,5 +1,5 @@
 name: test CI
-on: push
+on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -8,4 +8,6 @@ jobs:
       - name: Install modules
         run: npm install
       - name: Run tests
-        run: npm test
+        run: npm test -- --coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1

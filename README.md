@@ -1,6 +1,8 @@
 sequelize-bakery
 ================
 
+![test CI](https://github.com/jrocketfingers/sequelize-bakery/actions/workflows/test.yml/badge.svg)
+
 A test model builder inspired by Django's [model-bakery](https://github.com/model-bakers/model_bakery). Allows you to focus your test setup by only specifying fields relevant to your test, and letting the bakery build out everything else.
 
 Problem
