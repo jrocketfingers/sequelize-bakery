@@ -12,10 +12,6 @@ const typemap = new Map<String, Function>([
 	['DATE', faker.datatype.datetime],
 ]);
 
-function isPrimitive(value: any) {
-    return Object(value) !== value;
-}
-
 interface BuildOptions {
 	fillOptional?: (boolean | Array<String>);
 }
@@ -58,12 +54,13 @@ export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>
 
 			const generator = typemap.get(type);
 			if (generator === undefined) {
-				throw new Error(`${type} is not defined in the builder typemap`);
+				throw new Error(`sequelize-bakery does not currently support ${type}`);
 			}
 
 			if (typeof generator !== 'function') {
-				throw new Error(`${type} builder is not a function`);
+				throw new Error(`sequelize-bakery broke; ${type} builder is not a function`);
 			}
+
 			fakeData[attrName] = generator();
 		} else {
 			const association = associations[attrName];
@@ -71,18 +68,11 @@ export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>
 				fakeData[association.as.toLowerCase()] = fakeData[association.as];
 				fakeData[attrName] = fakeData[association.as].id;
 			} else {
-				if (data[attrName] instanceof Model) {
-					fakeData[attrName] = data[attrName];
-				} else {
-					if (!(association instanceof Association)) { // associationId has attr.references set
-						return;
-					}
-					const associatedModel = association.target;
-					const instance = await build(associatedModel, fakeData[association.as]);
-					fakeData[association.as.toLowerCase()] = instance;
-					delete fakeData[association.as];
-					fakeData[attrName] = instance.get('id');
-				}
+				const associatedModel = association.target;
+				const instance = await build(associatedModel, fakeData[association.as]);
+				fakeData[association.as.toLowerCase()] = instance;
+				delete fakeData[association.as];
+				fakeData[attrName] = instance.get('id');
 			}
 		}
 	}));
