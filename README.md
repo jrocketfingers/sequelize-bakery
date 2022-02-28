@@ -26,7 +26,7 @@ test('should be muddied by needless setup', async () => {
 With `sequelize-bakery`, you can jump straight to target model creation.
 
 ```javascript
-const build = require('sequelize-bakery');
+const { build } = require('sequelize-bakery');
 
 test('should be clear and to the point', async () => {
 	const wallet = await build(Wallet);
