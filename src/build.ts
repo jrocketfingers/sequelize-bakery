@@ -16,7 +16,11 @@ function isPrimitive(value: any) {
     return Object(value) !== value;
 }
 
-export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>, data: Record<string, any> = {}): Promise<any> {
+interface BuildOptions {
+	fillOptional?: (boolean | Array<String>);
+}
+
+export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>, data: Record<string, any> = {}, options: BuildOptions = {}): Promise<any> {
 	const fakeData: Record<string, any> = data;
 	const associations: Record<string, Association> = Object.values(model.associations).reduce((associationMap, association) => {
 		return { ...associationMap, [association.foreignKey]: association };
@@ -24,8 +28,24 @@ export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>
 
 	await Promise.all(Object.entries(model.rawAttributes).map(async ([attrName, attr]) => {
 		if(!attr.references) { // the attribute is NOT an association
-			if(fakeData[attrName]) {
+
+			// this ugly conditional simply says: if the field is optional, and we're getting
+			// no requests that it should be filled, skip generating data; can be simpler
+			if (attr.allowNull === true) { 
+				if (options.fillOptional === undefined
+					|| typeof options.fillOptional === "boolean" && options.fillOptional === false
+					|| options.fillOptional instanceof Array && !options.fillOptional.includes(attrName)) {
+					return;
+				}
+			}
+
+			if (fakeData[attrName]) {
 				return; // skip when data exists
+			}
+
+			if (attr.defaultValue !== undefined) {
+				fakeData[attrName] = attr.defaultValue;
+				return;
 			}
 			// generate fake data according to the field type
 			// take the part before the length spec; e.g. VARCHAR from VARCHAR(255)
@@ -70,8 +90,8 @@ export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>
 	return fakeData as CreationAttributes<T>;
 }
 
-export async function build<T extends Model<any, any>>(model: ModelStatic<T>, data: Record<string, any> = {}): Promise<T> {
-	const fakeData = await buildData(model, data);
+export async function build<T extends Model<any, any>>(model: ModelStatic<T>, data: Record<string, any> = {}, options: BuildOptions = {}): Promise<T> {
+	const fakeData = await buildData(model, data, options);
 	const instance: T = await model.create({ ...fakeData });
 	Object.assign(instance, fakeData); // pre-load instances of the associations
 

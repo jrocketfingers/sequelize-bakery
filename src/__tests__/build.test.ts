@@ -14,7 +14,8 @@ const sequelize = new Sequelize({
 class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
 	declare public id?: number;
 	declare public username: string;
-	declare public email: string;
+	declare public email?: string;
+	declare public dateOfBirth?: Date;
 
 	declare public createdAt: Date;
 	declare public updatedAt: Date;
@@ -37,7 +38,11 @@ User.init(
 		},
 		email: {
 			type: DataTypes.STRING,
-			allowNull: false,
+			allowNull: true,
+		},
+		dateOfBirth: {
+			type: DataTypes.DATE,
+			allowNull: true,
 		},
 		createdAt: {
 			type: DataTypes.DATE,
@@ -78,7 +83,7 @@ Account.init(
 		userId: {
 			type: DataTypes.INTEGER,
 			allowNull: false,
-		}
+		},
 	},
 	{
 		tableName: 'accounts',
@@ -90,6 +95,7 @@ class Wallet extends Model<InferAttributes<Wallet>, InferCreationAttributes<Wall
 	declare public id: number;
 	declare public name: string;
 	declare public accountId: number;
+	declare public balance: number;
 
 	declare public account?: Account;
 	declare public getAccount: BelongsToGetAssociationMixin<Account>;
@@ -110,7 +116,12 @@ Wallet.init(
 		accountId: {
 			type: DataTypes.INTEGER,
 			allowNull: false,
-		}
+		},
+		balance: {
+			type: DataTypes.DECIMAL,
+			allowNull: false,
+			defaultValue: 0,
+		},
 	},
 	{
 		tableName: 'wallets',
@@ -128,6 +139,33 @@ beforeAll(async () => {
 });
 
 describe('just create', () => {
+	test('use default values when available', async () => {
+		const wallet = await build(Wallet);
+
+		expect(wallet.balance).toEqual(0); // wallet has defaultValue set to 0
+	});
+
+	test('skip allowNull fields', async () => {
+		const user = await build(User);
+
+		expect(user.email).toBeUndefined();
+		expect(user.dateOfBirth).toBeUndefined();
+	});
+
+	test('generate allowNull fields if requested', async () => {
+		const user = await build(User, {}, { fillOptional: true });
+
+		expect(user.email).not.toBeUndefined();
+		expect(user.dateOfBirth).not.toBeUndefined();
+	})
+
+	test('generate specific allowNull fields if requested', async () => {
+		const user = await build(User, {}, { fillOptional: ['dateOfBirth'] });
+
+		expect(user.email).toBeUndefined();
+		expect(user.dateOfBirth).not.toBeUndefined();
+	})
+
 	test('can create an instance with a belongsTo relation', async () => {
 		await build(Account, { User: { username: 'Brock' } });
 
