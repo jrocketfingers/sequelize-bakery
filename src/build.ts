@@ -23,18 +23,17 @@ export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>
 	}, {});
 
 	await Promise.all(Object.entries(model.rawAttributes).map(async ([attrName, attr]) => {
-		if(!attr.references) { // the attribute is NOT an association
-
-			// this ugly conditional simply says: if the field is optional, and we're getting
-			// no requests that it should be filled, skip generating data; can be simpler
-			if (attr.allowNull === true) { 
-				if (options.fillOptional === undefined
-					|| typeof options.fillOptional === "boolean" && options.fillOptional === false
-					|| options.fillOptional instanceof Array && !options.fillOptional.includes(attrName)) {
-					return;
-				}
+		// this ugly conditional simply says: if the field is optional, and we're getting
+		// no requests that it should be filled, skip generating data; can be simpler
+		if (attr.allowNull === true) { 
+			if (options.fillOptional === undefined
+				|| typeof options.fillOptional === "boolean" && options.fillOptional === false
+				|| options.fillOptional instanceof Array && !options.fillOptional.includes(attrName)) {
+				return;
 			}
+		}
 
+		if(!attr.references) { // the attribute is NOT an association
 			if (fakeData[attrName]) {
 				return; // skip when data exists
 			}

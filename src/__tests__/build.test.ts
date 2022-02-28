@@ -63,10 +63,15 @@ class Account extends Model<InferAttributes<Account>, InferCreationAttributes<Ac
 	declare public id: number;
 	declare public name: string;
 	declare public userId: number;
+	declare public managerId: number;
 
 	declare public user?: User;
+	declare public manager?: User;
 	declare public getUser: BelongsToGetAssociationMixin<User>;
 	declare public setUser: BelongsToSetAssociationMixin<User, Account['userId']>;
+
+	declare public getManager: BelongsToGetAssociationMixin<User>;
+	declare public setManager: BelongsToSetAssociationMixin<User, Account['managerId']>;
 }
 
 Account.init(
@@ -84,6 +89,10 @@ Account.init(
 			type: DataTypes.INTEGER,
 			allowNull: false,
 		},
+		managerId: {
+			type: DataTypes.INTEGER,
+			allowNull: true,
+		}
 	},
 	{
 		tableName: 'accounts',
@@ -131,6 +140,7 @@ Wallet.init(
 
 User.hasMany(Account, { foreignKey: 'userId' });
 Account.belongsTo(User, { foreignKey: 'userId' });
+Account.belongsTo(User, { as: 'manager', foreignKey: 'managerId' });
 Account.hasMany(Wallet, { foreignKey: 'accountId' });
 Wallet.belongsTo(Account, { foreignKey: 'accountId' });
 
@@ -165,7 +175,9 @@ describe('just create', () => {
 		expect(user.email).toBeUndefined();
 		expect(user.dateOfBirth).not.toBeUndefined();
 	})
+});
 
+describe('create with relations', () => {
 	test('can create an instance with a belongsTo relation', async () => {
 		await build(Account, { User: { username: 'Brock' } });
 
@@ -180,6 +192,12 @@ describe('just create', () => {
 
 		expect(instance).not.toBeNull();
 		expect(instance!.user).not.toBeNull();
+	});
+
+	test('does not create an allowNull belongsTo relation', async () => {
+		const instance = await build(Account);
+
+		expect(instance.managerId).toBeFalsy();
 	});
 
 	// don't have a mechanism just yet
@@ -220,7 +238,7 @@ describe('create nested', () => {
 		const instance = await build(Wallet);
 
 		expect(instance.account).not.toBeNull();
-		expect(instance.account!.user).not.toBeNull();		
+		expect(instance.account!.userId).not.toBeNull();		
 	});
 
 	test('can override a skip-level in hierarchy', async () => {
