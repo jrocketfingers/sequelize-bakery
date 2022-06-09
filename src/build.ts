@@ -19,6 +19,10 @@ interface BuildOptions {
 	fillOptional?: (boolean | Array<String>);
 }
 
+export function overrideGenerator(type: String, generator: Function) {
+    typemap.set(type, generator);
+}
+
 export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>, data: Record<string, any> = {}, options: BuildOptions = {}): Promise<any> {
 	const fakeData: Record<string, any> = data;
 	const associations: Record<string, Association> = Object.values(model.associations).reduce((associationMap, association) => {
