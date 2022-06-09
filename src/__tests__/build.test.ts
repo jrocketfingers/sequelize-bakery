@@ -303,4 +303,40 @@ describe('create nested', () => {
 
 		expect(wallets).toHaveLength(2);
 	});
-})
+});
+
+describe('create specialized fields', () => {
+	test('validators', async () => {
+		class ModelWithAllValidators extends Model<InferAttributes<ModelWithAllValidators>, InferCreationAttributes<ModelWithAllValidators>> {
+			declare public email?: string;
+			declare public ip?: string;
+			declare public ipv4?: string;
+			declare public ipv6?: string;
+			declare public creditCard?: string;
+		}
+
+		ModelWithAllValidators.init({
+			email: { type: DataTypes.STRING, validate: { isEmail: true } },
+			ip: { type: DataTypes.STRING, validate: { isIP: true } },
+			ipv4: { type: DataTypes.STRING, validate: { isIPv4: true }},
+			ipv6: { type: DataTypes.STRING, validate: { isIPv6: true }},
+			creditCard: { type: DataTypes.STRING, validate: { isCreditCard: true }},
+		}, { sequelize, tableName: 'model_with_all_validators' });
+		await sequelize.sync();
+
+		await build(ModelWithAllValidators);
+	});
+
+	test('unsupported validator', async () => {
+		class ModelWithUnsupportedValidators extends Model<InferAttributes<ModelWithUnsupportedValidators>, InferCreationAttributes<ModelWithUnsupportedValidators>> {
+			declare public random?: string;
+		}
+
+		ModelWithUnsupportedValidators.init({
+			random: { type: DataTypes.STRING, validate: { isArray: true } },
+		}, { sequelize, tableName: 'model_with_unsupported_validators' });
+		await sequelize.sync();
+
+		expect(async () => await build(ModelWithUnsupportedValidators)).rejects.toThrowError('sequelize-bakery does not currently support');
+	})
+});

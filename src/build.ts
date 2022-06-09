@@ -1,7 +1,7 @@
 import 'module-alias/register'
-import { Association, CreationAttributes, Model, ModelStatic } from 'sequelize';
+import { Association, CreationAttributes, Model, ModelStatic, ModelValidateOptions } from 'sequelize';
 
-import faker from 'faker';
+import { faker } from '@faker-js/faker';
 
 const typemap = new Map<String, Function>([
 	['INTEGER', () => faker.datatype.number()],
@@ -12,11 +12,28 @@ const typemap = new Map<String, Function>([
 	['DATETIME', () => faker.datatype.datetime()],
 	['DATE', () => faker.datatype.datetime()],
 	['JSONB', () => {}],
-	['ENUM', (attr: { values: Array<String> }) => faker.helpers.randomize(attr.values)],
+	['ENUM', (attr: { values: Array<String> }) => faker.helpers.arrayElement(attr.values)],
+]);
+
+const specializedTypemap = new Map<String, Function>([
+	['isEmail', () => faker.internet.email()],
+	['isIP', () => faker.internet.ip()],
+	['isIPv4', () => faker.internet.ip()],
+	['isIPv6', () => faker.internet.ipv6()],
+	['isCreditCard', () => faker.finance.creditCardNumber('visa')],
 ]);
 
 interface BuildOptions {
 	fillOptional?: (boolean | Array<String>);
+}
+
+function inferGeneratorFromValidators(validatorMap: ModelValidateOptions) {
+	const enabledValidators = Object.entries(validatorMap)
+		.filter(([validator, enabled]) => enabled === true)
+		.map(([validator, enabled]) => validator)
+
+	// just do naive inference; pick the first validator from the list
+	return specializedTypemap.get(enabledValidators[0]);
 }
 
 export function overrideGenerator(type: String, generator: Function) {
@@ -63,12 +80,12 @@ export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>
 			// take the part before the length spec; e.g. VARCHAR from VARCHAR(255)
 			const type = attr.type.constructor.name.split('(')[0];
 
-			const generator = typemap.get(type);
+			const generator = attr.validate ? inferGeneratorFromValidators(attr.validate) : typemap.get(type);
 			if (generator === undefined) {
 				if (type === 'VIRTUAL') {
 					return;
 				}
-				throw new Error(`sequelize-bakery does not currently support ${type}`);
+				throw new Error(`sequelize-bakery does not currently support ${type} ${attr.validate ? 'with validators ' + JSON.stringify(attr.validate) : '' }`);
 			}
 
 			if (typeof generator !== 'function') {
@@ -76,7 +93,7 @@ export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>
 			}
 
 			fakeData[attrName] = generator(attr);
-		} else {
+		} else { // the attribute is an association
 			if(typeof fakeData[attrName] === 'string' || typeof fakeData[attrName] === 'number') {
 				const existingAssociatedInstance = await association.target.findByPk(fakeData[attrName]);
 				fakeData[association.as] = existingAssociatedInstance;
@@ -86,7 +103,7 @@ export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>
 				throw new Error(`You need to supply a Model, or an object for \`${model.name}.${association.as}\`.`);
 			} else if (fakeData[attrName] === undefined) { // if it's not supplied, generate it
 				const associatedModel = association.target;
-				const instance = await build(associatedModel, fakeData[association.as]);
+				const instance = await build(associatedModel, fakeData[association.as], options);
 				fakeData[association.as] = instance;
 				fakeData[attrName] = instance.get('id');
 			} else {

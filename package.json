@@ -24,7 +24,7 @@
   ],
   "license": "ISC",
   "dependencies": {
-    "faker": "^5.5.3",
+    "@faker-js/faker": "^7.2.0",
     "module-alias": "^2.2.2",
     "pg": "^8.7.3",
     "sequelize": "^6.14.0",
