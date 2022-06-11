@@ -27,6 +27,8 @@ interface BuildOptions {
 	fillOptional?: (boolean | Array<String>);
 }
 
+const trackedForDeletion: Array<Model<any,any>> = [];
+
 function inferGeneratorFromValidators(validatorMap: ModelValidateOptions) {
 	const enabledValidators = Object.entries(validatorMap)
 		.filter(([validator, enabled]) => enabled === true)
@@ -119,7 +121,14 @@ export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>
 export async function build<T extends Model<any, any>>(model: ModelStatic<T>, data: Record<string, any> = {}, options: BuildOptions = {}): Promise<T> {
 	const fakeData = await buildData(model, data, options);
 	const instance: T = await model.create({ ...fakeData });
+	trackedForDeletion.push(instance); // track the instance for deletion from DB
 	Object.assign(instance, fakeData); // pre-load instances of the associations
 
 	return instance;
+}
+
+export async function destroyAllBuilt() {
+	for (const instance of trackedForDeletion.reverse()) {
+		await instance.destroy({ force: true });
+	}
 }
