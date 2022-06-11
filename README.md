@@ -73,6 +73,26 @@ afterEach(async () => {
 });
 ```
 
+### Overriding generators
+In case your models require specialized conversion, you can override the underlying generators. The first parameter is
+is the type of your column in underlying SQL dialect. (e.g. VARCHAR)
+```javascript
+const { overrideGenerator } = require('sequlize-bakery');
+
+overrideGenerator('DECIMAL', () => new CustomBigNumber(faker.datatype.number().toString()));
+```
+
+In addition, if your column has sequelize validation (not constraint!), you can use the same override with the first parameter
+being the sequelize validator.
+```javascript
+overrideGenerator('isEmal', () => `${faker.name.firstName()}@yahoo.com`);
+```
+
+If a column has sequelize validation, the specialized generators take precedence. Some are built in, such as isEmail, isIPv4, etc.
+
+**Warning:** `overrideGenerator` overrides both SQL typemap and validator typemap. This overlap behavior is not thoroughly tested
+and might cause some problems! Be suspect of this if you encounter odd issues while using `overrideGenerator`.
+
 Limitations
 -----------
 Currently only creating BelongsTo relations, hasMany relations are not yet supported.
