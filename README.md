@@ -63,6 +63,16 @@ In case you want to allow bakery to generate some fields, but not others, you ca
 const user = build(User, {}, { fillOptional: ['dateOfBirth'] });
 ```
 
+### Destroying built models in test teardowns
+`sequelize-bakery` tracks all instances it creates. Calling `destroyAllBuilt` in test teardowns will automatically destroy all instances built by Sequelize.
+```javascript
+const { destroyAllBuilt } = require('sequelize-bakery');
+
+afterEach(async () => {
+    await destroyAllBuilt();
+});
+```
+
 Limitations
 -----------
 Currently only creating BelongsTo relations, hasMany relations are not yet supported.
