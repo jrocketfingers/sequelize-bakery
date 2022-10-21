@@ -16,6 +16,7 @@ class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
 	declare public username: string;
 	declare public email?: string;
 	declare public dateOfBirth?: Date;
+	declare public initials?: string;
 
 	declare public createdAt?: Date;
 	declare public updatedAt?: Date;
@@ -45,6 +46,10 @@ User.init(
 			type: DataTypes.DATE,
 			allowNull: true,
 		},
+		initials: {
+			type: DataTypes.STRING(3),
+			allowNull: true
+		}
 	},
 	{
 		tableName: 'users',
@@ -176,6 +181,12 @@ describe('just create', () => {
 		expect(user.email).toBeUndefined();
 		expect(user.dateOfBirth).not.toBeUndefined();
 	});
+
+	test('respect maximum length of variable-length fields', async () => {
+		const user = await build(User, {}, { fillOptional: ['initials'] });
+		expect(user.initials).toBeDefined();
+		expect(user.initials!.length).toBeLessThanOrEqual(3);
+	})
 });
 
 describe('create with relations', () => {
