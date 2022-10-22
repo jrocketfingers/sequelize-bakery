@@ -1,5 +1,5 @@
 import 'module-alias/register'
-import { Association, CreationAttributes, Model, ModelStatic, ModelValidateOptions } from 'sequelize';
+import { Association, CreationAttributes, Model, ModelStatic, ModelValidateOptions, StringDataType } from 'sequelize';
 
 import { faker } from '@faker-js/faker';
 
@@ -7,7 +7,7 @@ const typemap = new Map<String, Function>([
 	['INTEGER', () => faker.datatype.number()],
 	['DECIMAL', () => faker.datatype.number()],
 	['BIGINT', () => faker.datatype.number()],
-	['STRING', () => faker.datatype.string()],
+	['STRING', (attr: { type: StringDataType }) => faker.datatype.string(attr.type.options?.length)],
 	['TEXT', () => faker.datatype.string()],
 	['DATETIME', () => faker.datatype.datetime()],
 	['DATE', () => faker.datatype.datetime()],
