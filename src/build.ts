@@ -88,7 +88,7 @@ export async function buildData<T extends Model<any, any>>(model: ModelStatic<T>
 				if (type === 'VIRTUAL') {
 					return;
 				}
-				throw new Error(`sequelize-bakery does not currently support ${type} ${attr.validate ? 'with validators ' + JSON.stringify(attr.validate) : '' }`);
+				throw new Error(`sequelize-bakery does not currently support ${type} ${attr.validate ? 'with validators ' + JSON.stringify(attr.validate) : '' } on ${model.name}.${attrName}`);
 			}
 
 			if (typeof generator !== 'function') {
